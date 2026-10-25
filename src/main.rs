@@ -201,6 +201,12 @@ fn serve(dir: &Path, port: u16) -> Result<()> {
         }
         let mut path = dir.join(rel.trim_start_matches('/'));
         if path.is_dir() {
+            // Like Caddy's canonical URIs: relative links need the trailing slash.
+            if !url.ends_with('/') {
+                let location = tiny_http::Header::from_bytes("Location", format!("{url}/")).unwrap();
+                let _ = req.respond(tiny_http::Response::empty(301).with_header(location));
+                continue;
+            }
             path = path.join("index.html");
         }
         match std::fs::read(&path) {

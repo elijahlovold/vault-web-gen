@@ -89,6 +89,15 @@ pub fn render(p: &Page) -> String {
             None => "null".into(),
         }
     );
+    // Index pages are reachable as a directory URL. Without the trailing slash
+    // ("/vault/<id>") every relative link and asset would resolve one level up,
+    // into the parent slice, so add the slash before anything else loads.
+    let slash_fix = if p.path == "index.html" {
+        r#"<script>(function(l){if(!/\/$|\.html$/.test(l.pathname))l.replace(l.pathname+"/"+l.search+l.hash)})(location)</script>
+"#
+    } else {
+        ""
+    };
     let payload = p
         .encryption
         .as_ref()
@@ -100,7 +109,7 @@ pub fn render(p: &Page) -> String {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+{slash_fix}<meta name="viewport" content="width=device-width, initial-scale=1">
 {head_meta}
 <title>{title}</title>
 <link rel="icon" href="{ICON}">

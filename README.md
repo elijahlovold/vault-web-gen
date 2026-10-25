@@ -21,6 +21,22 @@ Every slice has its own `_site/` (css/js/data) and `_media/`, and links only to 
 A link to a note outside the slice is shown as plain text, without the target's name.
 The public slice never references the slices.
 
+## Caddy
+
+Pages use relative links, so a slice must be opened as a directory URL *with* the trailing
+slash (`/vault/<uuid>/`). Caddy's `file_server` redirects `/vault/<uuid>` to that by default.
+Each index page also fixes this itself with a one-line script, in case a `handle_path`/`uri strip_prefix`
+setup breaks the redirect. A minimal site block:
+
+```
+example.com {
+    handle /vault/* {
+        root * /srv            # /srv/vault/ is the copied output folder
+        file_server            # no `browse`
+    }
+}
+```
+
 ## Config (`vault-web.toml` in the vault root)
 
 ```toml
