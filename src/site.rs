@@ -1,5 +1,6 @@
 //! Selecting and writing one slice.
 
+use crate::appearance::Appearance;
 use crate::config::{SiteConfig, SliceConfig};
 use crate::crypto::{ITERATIONS, SliceKey};
 use crate::render::{ROOT, Renderer, SliceCtx, esc, slug};
@@ -127,6 +128,7 @@ pub fn build(
     vault: &Vault,
     site: &SiteConfig,
     renderer: &Renderer,
+    look: &Appearance,
     spec: &SliceSpec,
     sel: &Selection,
     dir: &Path,
@@ -182,6 +184,8 @@ pub fn build(
             math,
             mermaid,
             cdn: site.cdn,
+            theme_css: !look.css.is_empty(),
+            mode: &look.mode,
             private: spec.id.is_some(),
             encryption,
         });
@@ -239,7 +243,7 @@ pub fn build(
         None => std::fs::write(dir.join("_site/data.json"), data)?,
     }
 
-    write_assets(&dir.join("_site"))?;
+    write_assets(&dir.join("_site"), look)?;
 
     let media = ctx.media.borrow().clone();
     for (att, out) in &media {
@@ -302,11 +306,14 @@ fn index_html(ctx: &SliceCtx, title: &str, notes: &[usize]) -> String {
     template::article_html(title, "", &body, "")
 }
 
-fn write_assets(dir: &Path) -> Result<()> {
+fn write_assets(dir: &Path, look: &Appearance) -> Result<()> {
     use syntect::highlighting::ThemeSet;
     use syntect::html::{ClassStyle, css_for_theme_with_class_style};
     std::fs::write(dir.join("style.css"), STYLE)?;
     std::fs::write(dir.join("app.js"), APP_JS)?;
+    if !look.css.is_empty() {
+        std::fs::write(dir.join("theme.css"), &look.css)?;
+    }
     let themes = ThemeSet::load_defaults();
     for (file, theme) in [("hl-light.css", "InspiredGitHub"), ("hl-dark.css", "base16-ocean.dark")] {
         let css = css_for_theme_with_class_style(&themes.themes[theme], ClassStyle::Spaced)?;

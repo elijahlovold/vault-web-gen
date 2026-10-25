@@ -19,6 +19,9 @@
   // ---------------------------------------------------------------- theme
   function applyTheme(t) {
     document.documentElement.dataset.theme = t;
+    // Obsidian themes key off these body classes.
+    document.body.classList.toggle("theme-dark", t === "dark");
+    document.body.classList.toggle("theme-light", t !== "dark");
     $("#hl-light").disabled = t === "dark";
     $("#hl-dark").disabled = t !== "dark";
     graphs.forEach((g) => g.readColors());
@@ -396,9 +399,16 @@
       this.kick();
     }
     readColors() {
-      const s = getComputedStyle(document.documentElement);
+      const s = getComputedStyle(document.body);
       const v = (n) => s.getPropertyValue(n).trim();
-      this.colors = { node: v("--graph-node"), line: v("--graph-line"), label: v("--graph-label"), accent: v("--accent"), bg: v("--bg") };
+      this.colors = {
+        node: v("--graph-node"),
+        unresolved: v("--graph-node-unresolved"),
+        line: v("--graph-line"),
+        label: v("--graph-text"),
+        accent: v("--interactive-accent"),
+        bg: v("--background-primary"),
+      };
       this.draw?.();
     }
     step() {
@@ -497,7 +507,7 @@
           ctx.globalAlpha *= 0.6;
           ctx.fillStyle = colors.bg; ctx.fill();
           ctx.lineWidth = 1.5;
-          ctx.strokeStyle = i === focus ? colors.accent : colors.node; ctx.stroke();
+          ctx.strokeStyle = i === focus ? colors.accent : colors.unresolved; ctx.stroke();
           ctx.lineWidth = 1;
         } else {
           ctx.fillStyle = i === this.current || i === focus ? colors.accent : colors.node;

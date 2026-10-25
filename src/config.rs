@@ -38,6 +38,12 @@ pub struct SiteConfig {
     /// Load KaTeX / Mermaid from jsDelivr on pages that need them.
     #[serde(default = "yes")]
     pub cdn: bool,
+    /// "auto" (the vault's active Obsidian theme), "none", or a theme name from .obsidian/themes.
+    pub theme: Option<String>,
+    /// CSS snippets from .obsidian/snippets; defaults to the ones enabled in Obsidian.
+    pub snippets: Option<Vec<String>>,
+    /// Initial light/dark mode: "system", "dark" or "light"; defaults to Obsidian's setting.
+    pub color_mode: Option<String>,
 }
 
 impl Default for SiteConfig {
@@ -49,6 +55,9 @@ impl Default for SiteConfig {
             exclude: vec![],
             hide_properties: vec![],
             cdn: true,
+            theme: None,
+            snippets: None,
+            color_mode: None,
         }
     }
 }
@@ -175,6 +184,8 @@ require_tag = "shared"
 exclude = ["templates/**"]
 hide_properties = []
 cdn = true                        # KaTeX / Mermaid from jsDelivr when a page needs them
+theme = "auto"                    # your active Obsidian theme + enabled snippets; "none" for the plain look
+# color_mode = "system"           # initial light/dark; defaults to Obsidian's setting
 
 # Exported at /vault/. Never links to any slice.
 [public]

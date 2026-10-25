@@ -15,6 +15,10 @@ pub struct Page<'a> {
     pub math: bool,
     pub mermaid: bool,
     pub cdn: bool,
+    /// Whether `_site/theme.css` (Obsidian theme + snippets) exists.
+    pub theme_css: bool,
+    /// Initial colour mode: "system", "dark" or "light".
+    pub mode: &'a str,
     pub private: bool,
     pub encryption: Option<Encryption<'a>>,
 }
@@ -40,7 +44,7 @@ pub fn relativize(html: &str, path: &str) -> String {
 
 pub fn article_html(title: &str, properties: &str, body: &str, backlinks: &str) -> String {
     format!(
-        r#"<article class="markdown-rendered"><h1 class="page-title">{}</h1>{properties}{body}{backlinks}</article>"#,
+        r#"<article class="markdown-preview-view markdown-rendered"><h1 class="page-title inline-title">{}</h1>{properties}{body}{backlinks}</article>"#,
         esc(title)
     )
 }
@@ -113,12 +117,13 @@ pub fn render(p: &Page) -> String {
 {head_meta}
 <title>{title}</title>
 <link rel="icon" href="{ICON}">
-<script>(function(){{var t;try{{t=localStorage.getItem("vwg-theme")}}catch(e){{}}if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}})()</script>
+<script>(function(){{var t;try{{t=localStorage.getItem("vwg-theme")}}catch(e){{}}if(!t)t={mode}==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):{mode};document.documentElement.dataset.theme=t}})()</script>
 <link rel="stylesheet" href="{root}_site/style.css">
 <link rel="stylesheet" href="{root}_site/hl-light.css" id="hl-light">
 <link rel="stylesheet" href="{root}_site/hl-dark.css" id="hl-dark">
-</head>
+{theme_link}</head>
 <body>
+<script>document.body.classList.add("theme-"+document.documentElement.dataset.theme)</script>
 <div class="app">
 <aside class="sidebar sidebar-left" id="sidebar-left">
   <div class="site-title"><a href="{root}index.html">{site_title}</a></div>
@@ -157,6 +162,8 @@ pub fn render(p: &Page) -> String {
 </html>
 "##,
         site_title = esc(p.site_title),
+        mode = json(p.mode),
+        theme_link = if p.theme_css { format!("<link rel=\"stylesheet\" href=\"{root}_site/theme.css\">\n") } else { String::new() },
         title = esc(&title),
     )
 }

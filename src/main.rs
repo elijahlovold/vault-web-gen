@@ -1,3 +1,4 @@
+mod appearance;
 mod config;
 mod crypto;
 mod render;
@@ -73,9 +74,10 @@ fn run() -> Result<()> {
         Command::List => {
             let cfg = config::load(&config_path, false)?;
             let vault = Vault::scan(&cli.vault)?;
+            let base = cfg.config.site.base_url.as_deref().map(|b| b.trim_end_matches('/').to_string() + "/");
             for (slice, id) in slices(&cfg) {
                 let sel = site::select(&vault, &cfg.config.site, slice)?;
-                println!("{} [{}]", slice.label(), match (id, slice.name.is_some()) { (Some(id), _) => id, (None, true) => "id assigned on first build", (None, false) => "public" });
+                println!("{}", slice_line(slice, id, base.as_deref().unwrap_or("/vault/")));
                 for n in &sel.notes {
                     println!("  + {}", vault.notes[*n].rel);
                 }
@@ -83,14 +85,33 @@ fn run() -> Result<()> {
                     println!("  - {}  (no #{})", vault.notes[*n].rel, cfg.config.site.require_tag);
                 }
             }
+            if base.is_none() {
+                println!("(set site.base_url to print full links)");
+            }
             Ok(())
         }
         Command::Build { out, force } => build(&cli.vault, &config_path, out, force),
         Command::Serve { out, port } => {
-            let out = match out {
-                Some(o) => o,
-                None => output_dir(&config::load(&config_path, false)?, None)?,
+            // The config is only needed to find the output and name the slices.
+            let cfg = match &out {
+                Some(_) => config::load(&config_path, false).ok(),
+                None => Some(config::load(&config_path, false)?),
             };
+            let out = match (out, &cfg) {
+                (Some(o), _) => o,
+                (None, Some(cfg)) => output_dir(cfg, None)?,
+                (None, None) => unreachable!(),
+            };
+            let base = format!("http://127.0.0.1:{port}/vault/");
+            match &cfg {
+                Some(cfg) => {
+                    for (slice, id) in slices(cfg) {
+                        let built = out.join(id.unwrap_or("")).join("index.html").is_file();
+                        println!("{}{}", slice_line(slice, id, &base), if built { "" } else { "  (not built)" });
+                    }
+                }
+                None => println!("{base}"),
+            }
             serve(&out, port)
         }
     }
@@ -99,6 +120,17 @@ fn run() -> Result<()> {
 fn slices(cfg: &LoadedConfig) -> Vec<(&SliceConfig, Option<&str>)> {
     let c = &cfg.config;
     c.public.iter().map(|p| (p, None)).chain(c.slices.iter().map(|s| (s, s.id.as_deref()))).collect()
+}
+
+/// "label  🔒 <url>" for a slice; `base` ends with '/'.
+fn slice_line(slice: &SliceConfig, id: Option<&str>, base: &str) -> String {
+    let locked = slice.password.is_some() || slice.password_env.is_some();
+    let url = match (id, slice.name.is_some()) {
+        (Some(id), _) => format!("{base}{id}/"),
+        (None, false) => base.to_string(),
+        (None, true) => "(id assigned on first build)".to_string(),
+    };
+    format!("{:<12} {} {url}", slice.label(), if locked { "🔒" } else { "  " })
 }
 
 fn output_dir(cfg: &LoadedConfig, cli_out: Option<PathBuf>) -> Result<PathBuf> {
@@ -114,6 +146,10 @@ fn build(vault_dir: &Path, config_path: &Path, cli_out: Option<PathBuf>, force: 
     let out = output_dir(&cfg, cli_out)?;
     let vault = Vault::scan(vault_dir)?;
     let renderer = render::Renderer::new();
+    let look = appearance::load(vault_dir, &cfg.config.site)?;
+    for w in &look.warnings {
+        println!("warning {w}");
+    }
     let site_cfg = &cfg.config.site;
 
     let vault_abs = vault_dir.canonicalize()?;
@@ -145,7 +181,7 @@ fn build(vault_dir: &Path, config_path: &Path, cli_out: Option<PathBuf>, force: 
             title: slice.title.clone().or(slice.name.clone()).unwrap_or_else(|| "Notes".into()),
             password: slice.resolve_password()?,
         };
-        let report = site::build(&vault, site_cfg, &renderer, &spec, &sel, &dir)
+        let report = site::build(&vault, site_cfg, &renderer, &look, &spec, &sel, &dir)
             .with_context(|| format!("building slice '{}'", slice.label()))?;
         summary.push((slice, id, sel, report, spec.password.is_some()));
     }
@@ -191,7 +227,7 @@ fn build(vault_dir: &Path, config_path: &Path, cli_out: Option<PathBuf>, force: 
 
 fn serve(dir: &Path, port: u16) -> Result<()> {
     let server = tiny_http::Server::http(("127.0.0.1", port)).map_err(|e| anyhow::anyhow!("{e}"))?;
-    println!("serving {} at http://127.0.0.1:{port}/vault/", dir.display());
+    println!("serving {} (ctrl-c to stop)", dir.display());
     for req in server.incoming_requests() {
         let url = req.url().split(['?', '#']).next().unwrap_or("/").to_string();
         let rel = vault::percent_decode(url.strip_prefix("/vault").unwrap_or(&url));

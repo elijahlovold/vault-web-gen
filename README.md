@@ -5,9 +5,9 @@ directory to your webserver's `/vault/` and you're done.
 
 ```
 vault-web-gen -v ~/vault init     # writes a sample ~/vault/vault-web.toml
-vault-web-gen -v ~/vault list     # what each slice exports / skips
+vault-web-gen -v ~/vault list     # each slice's link (from base_url) and what it exports / skips
 vault-web-gen -v ~/vault build    # renders into site.output (replaced on every build)
-vault-web-gen -v ~/vault serve    # preview at http://127.0.0.1:8080/vault/
+vault-web-gen -v ~/vault serve    # preview; prints a localhost link for every slice
 ```
 
 ## Layout
@@ -47,6 +47,9 @@ require_tag = "shared"          # frontmatter tag required on EVERY exported not
 exclude = ["templates/**"]      # never exported (dot-folders are always skipped)
 hide_properties = ["cssclasses"]
 cdn = true                      # KaTeX / Mermaid from jsDelivr, only on pages that use them
+theme = "auto"                  # "auto" (active Obsidian theme), "none", or a theme name
+# snippets = ["my-snippet"]     # default: the snippets enabled in Obsidian
+# color_mode = "system"         # initial light/dark: "system" | "dark" | "light"; default: Obsidian's
 
 [public]                        # optional; no password allowed
 title = "Notes"
@@ -67,6 +70,17 @@ tags = ["share/alice"]
 
 A note is in a slice if it matches `include`, `tags` or `notes`, isn't excluded, **and** has
 `require_tag` in its frontmatter `tags`. Matching notes without the tag are listed as skipped.
+
+## Themes
+
+By default each slice gets your Obsidian look: the active theme
+(`.obsidian/themes/<name>/theme.css`), the enabled snippets (`.obsidian/snippets/*.css`),
+and the accent color, fonts, base font size and light/dark mode from `.obsidian/appearance.json`.
+They're bundled into `_site/theme.css`. The site's CSS uses Obsidian's variable names and
+classes (`.theme-dark`, `--background-primary`, `.markdown-rendered`, `.callout`…), so themes
+apply as they do in the app. Settings made through the Style Settings plugin are not applied yet,
+so a theme shows its defaults (e.g. Catppuccin: Mocha in dark mode, Latte in light).
+Fonts only render if the visitor has them installed.
 
 ## Passwords
 
