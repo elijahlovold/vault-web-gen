@@ -138,6 +138,7 @@ pub fn build(
         vault,
         pages: page_paths(vault, &sel.notes),
         encrypted: key.is_some(),
+        show_unshared_names: site.show_unshared_names,
         media: RefCell::new(BTreeMap::new()),
         warnings: RefCell::new(vec![]),
     };

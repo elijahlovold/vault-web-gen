@@ -38,6 +38,9 @@ pub struct SiteConfig {
     /// Load KaTeX / Mermaid from jsDelivr on pages that need them.
     #[serde(default = "yes")]
     pub cdn: bool,
+    /// Hovering a link to a note that exists but isn't in the slice shows its name.
+    #[serde(default = "yes")]
+    pub show_unshared_names: bool,
     /// "auto" (the vault's active Obsidian theme), "none", or a theme name from .obsidian/themes.
     pub theme: Option<String>,
     /// CSS snippets from .obsidian/snippets; defaults to the ones enabled in Obsidian.
@@ -55,6 +58,7 @@ impl Default for SiteConfig {
             exclude: vec![],
             hide_properties: vec![],
             cdn: true,
+            show_unshared_names: true,
             theme: None,
             snippets: None,
             color_mode: None,
@@ -184,6 +188,7 @@ require_tag = "shared"
 exclude = ["templates/**"]
 hide_properties = []
 cdn = true                        # KaTeX / Mermaid from jsDelivr when a page needs them
+show_unshared_names = true        # hover on a link to an unshared note shows its name
 theme = "auto"                    # your active Obsidian theme + enabled snippets; "none" for the plain look
 # color_mode = "system"           # initial light/dark; defaults to Obsidian's setting
 

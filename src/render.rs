@@ -31,6 +31,8 @@ pub struct SliceCtx<'v> {
     /// Note index → output path relative to the slice root ("folder/note.html").
     pub pages: HashMap<usize, String>,
     pub encrypted: bool,
+    /// Links to notes outside the slice show the target's name on hover.
+    pub show_unshared_names: bool,
     /// Attachment index → output path relative to the slice root.
     pub media: RefCell<BTreeMap<usize, String>>,
     pub warnings: RefCell<Vec<String>>,
@@ -473,13 +475,21 @@ fn md_link<'a>(arena: &'a Arena<'a>, pass: &mut Pass, node: &'a AstNode<'a>, url
 }
 
 /// A link that doesn't lead to a page of this slice. Notes that exist but aren't
-/// shared here keep only their text, so the slice reveals nothing about them.
-/// Notes that don't exist anywhere ("uncreated") get a graph node and a link that
-/// says so, like Obsidian's unresolved links.
+/// shared here are plain text, with their name on hover unless
+/// `show_unshared_names` is off. Notes that don't exist anywhere ("uncreated")
+/// get a graph node and a link that says so, like Obsidian's unresolved links.
 fn unresolved<'a>(arena: &'a Arena<'a>, pass: &mut Pass, node: &'a AstNode<'a>, target: &str) {
     let ctx = pass.ctx;
-    if ctx.vault.resolve_note(target, Some(pass.note)).is_some() {
-        wrap(arena, node, r#"<span class="internal-link is-unresolved">"#.into(), "</span>");
+    if let Some(n) = ctx.vault.resolve_note(target, Some(pass.note)) {
+        let open = if ctx.show_unshared_names {
+            format!(
+                r#"<span class="internal-link is-unresolved" data-tooltip="{} (not shared)">"#,
+                esc(&ctx.vault.notes[n].stem)
+            )
+        } else {
+            r#"<span class="internal-link is-unresolved">"#.to_string()
+        };
+        wrap(arena, node, open, "</span>");
         return;
     }
     let decoded = crate::vault::percent_decode(target);

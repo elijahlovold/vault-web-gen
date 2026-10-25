@@ -18,7 +18,9 @@ vault-web-gen -v ~/vault serve    # preview; prints a localhost link for every s
 ```
 
 Every slice has its own `_site/` (css/js/data) and `_media/`, and links only to its own pages.
-A link to a note outside the slice is shown as plain text, without the target's name.
+A link to a note outside the slice is plain text. Hovering it shows "Name (not shared)",
+unless `show_unshared_names = false`. A link to a note that doesn't exist anywhere shows
+"not created yet" and gets a hollow node in the graph.
 The public slice never references the slices.
 
 ## Caddy
@@ -47,6 +49,7 @@ require_tag = "shared"          # frontmatter tag required on EVERY exported not
 exclude = ["templates/**"]      # never exported (dot-folders are always skipped)
 hide_properties = ["cssclasses"]
 cdn = true                      # KaTeX / Mermaid from jsDelivr, only on pages that use them
+show_unshared_names = true      # hover on a link to an unshared note shows "Name (not shared)"
 theme = "auto"                  # "auto" (active Obsidian theme), "none", or a theme name
 # snippets = ["my-snippet"]     # default: the snippets enabled in Obsidian
 # color_mode = "system"         # initial light/dark: "system" | "dark" | "light"; default: Obsidian's
