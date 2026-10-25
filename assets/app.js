@@ -263,7 +263,7 @@
     const render = (node) => {
       let html = "";
       for (const [name, sub] of [...node.folders].sort((a, b) => a[0].localeCompare(b[0]))) {
-        const open = C.note && contains(sub, C.note) ? " open" : "";
+        const open = (C.note && contains(sub, C.note)) || data.notes.length <= 40 ? " open" : "";
         html += `<details${open}><summary class="tree-folder">${esc(name)}</summary><div class="tree-children">${render(sub)}</div></details>`;
       }
       for (const i of [...node.files].sort((a, b) => data.notes[a].t.localeCompare(data.notes[b].t))) {
@@ -423,7 +423,9 @@
         B.vx -= dx * f; B.vy -= dy * f;
       }
       for (const p of n) {
-        p.vx -= p.x * 0.012 * a; p.vy -= p.y * 0.012 * a;
+        // Isolated notes have no springs holding them, so they get a stronger pull.
+        const g = (p.deg ? 0.012 : 0.04) * a;
+        p.vx -= p.x * g; p.vy -= p.y * g;
         if (p.fixed) { p.vx = p.vy = 0; continue; }
         p.vx *= 0.6; p.vy *= 0.6;
         p.x += p.vx; p.y += p.vy;
@@ -452,14 +454,16 @@
       if (!this.nodes.length || !this.w) return;
       const xs = this.nodes.map((p) => p.x), ys = this.nodes.map((p) => p.y);
       const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-      const pad = 40;
-      this.scale = Math.min(2.2, (this.w - pad * 2) / Math.max(1, maxX - minX), (this.h - pad * 2) / Math.max(1, maxY - minY));
+      // Leave room for labels, which hang below and extend sideways from each node.
+      const padX = this.labels ? Math.min(90, this.w / 4) : 30, padY = 36;
+      this.scale = Math.min(2.2, (this.w - padX * 2) / Math.max(1, maxX - minX), (this.h - padY * 2) / Math.max(1, maxY - minY));
       this.tx = -((minX + maxX) / 2) * this.scale;
       this.ty = -((minY + maxY) / 2) * this.scale;
     }
     toScreen(p) { return [p.x * this.scale + this.w / 2 + this.tx, p.y * this.scale + this.h / 2 + this.ty]; }
     toWorld(x, y) { return [(x - this.w / 2 - this.tx) / this.scale, (y - this.h / 2 - this.ty) / this.scale]; }
-    radius(p) { return 3.5 + Math.sqrt(p.deg) * 1.6; }
+    radius(p) { return 4 + Math.sqrt(p.deg) * 1.6; }
+    nodeScale() { return Math.min(1.4, Math.max(this.nodes.length <= 30 ? 1 : 0.6, this.scale)); }
     nodeAt(x, y) {
       let best = -1, bestD = Infinity;
       this.nodes.forEach((p, i) => {
@@ -486,7 +490,7 @@
       nodes.forEach((p, i) => {
         const [x, y] = this.toScreen(p);
         ctx.globalAlpha = near(i) ? 1 : 0.3;
-        const r = this.radius(p) * Math.min(1.4, Math.max(0.6, this.scale));
+        const r = this.radius(p) * this.nodeScale();
         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
         if (p.u) {
           // Uncreated note: hollow and faded, like Obsidian's unresolved nodes.
@@ -510,7 +514,10 @@
         ctx.globalAlpha = near(i) ? 1 : 0.25;
         ctx.fillStyle = colors.label;
         const label = p.t.length > 28 ? p.t.slice(0, 27) + "…" : p.t;
-        ctx.fillText(label, x, y + this.radius(p) * Math.min(1.4, Math.max(0.6, this.scale)) + 3);
+        // Keep labels inside the canvas so edge nodes stay readable.
+        const half = ctx.measureText(label).width / 2 + 4;
+        const lx = Math.min(Math.max(x, half), this.w - half);
+        ctx.fillText(label, lx, y + this.radius(p) * this.nodeScale() + 3);
       });
       ctx.globalAlpha = 1;
     }
@@ -589,8 +596,11 @@
 
   function setupGraphs() {
     const current = data.notes.findIndex((n) => n.p === C.note);
+    // Small slices show everything in the sidebar (with the current note
+    // highlighted) so unlinked notes stay visible; large ones show neighbours only.
+    const LOCAL_ONLY_ABOVE = 40;
     let nodes = data.notes, links = data.links, local = current;
-    if (current >= 0) {
+    if (current >= 0 && data.notes.length > LOCAL_ONLY_ABOVE) {
       const keep = new Set([current]);
       for (const [a, b] of data.links) {
         if (a === current) keep.add(b);
@@ -602,14 +612,14 @@
       links = data.links.filter(([a, b]) => map.has(a) && map.has(b)).map(([a, b]) => [map.get(a), map.get(b)]);
       local = 0;
     }
-    graphs.push(new Graph($("#graph-local"), nodes, links, local, current >= 0));
+    graphs.push(new Graph($("#graph-local"), nodes, links, local, nodes.length <= 30));
 
     let global = null;
     const modal = $("#graph-modal");
     const close = () => (modal.hidden = true);
     $("#graph-expand").addEventListener("click", () => {
       modal.hidden = false;
-      if (!global) graphs.push((global = new Graph($("#graph-global"), data.notes, data.links, current, false)));
+      if (!global) graphs.push((global = new Graph($("#graph-global"), data.notes, data.links, current, data.notes.length <= 30)));
       else { global.resize(); global.draw(); }
     });
     $("#graph-close").addEventListener("click", close);

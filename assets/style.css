@@ -333,7 +333,6 @@ details.callout[open] > summary.callout-title::after { transform: rotate(45deg);
 .backlinks ul { list-style: none; padding: 0; margin: 0; }
 .backlinks li { margin: 0.25em 0; }
 
-.index-list { columns: 2 16rem; }
 
 /* math */
 span[data-math-style="display"] { display: block; overflow-x: auto; text-align: center; margin: 1em 0; }
