@@ -1,0 +1,20 @@
+# Demo export definition used for testing.
+[site]
+output = "../demo-site/vault"
+base_url = "https://example.com/vault/"
+require_tag = "shared"
+exclude = ["templates/**"]
+hide_properties = ["cssclasses"]
+
+[public]
+title = "Demo Notes"
+home = "Home"
+include = ["notes/", "Home.md"]
+
+[[slice]]
+name = "alice"
+title = "Notes for Alice"
+password = "hunter2"
+tags = ["share/alice"]
+notes = ["Features"]
+id = "fdd74c0e-c7b4-4eef-9541-ac092d1fe56c"

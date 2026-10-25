@@ -1,0 +1,7 @@
+[site]
+output = "../site/vault"
+require_tag = "shared"
+
+[public]
+title = "Elijah's Notes"
+include = ["**"]
