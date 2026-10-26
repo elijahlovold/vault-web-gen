@@ -1,9 +1,12 @@
 # vault-web-gen
 
-Exports slices of an Obsidian vault as static, self-contained websites. Copy the output
-directory to your webserver's `/vault/` and you're done.
+Exports slices of an Obsidian vault as static, self-contained websites. Check out a demo here:
 
-```
+<https://elovold.xyz/vault>
+
+## Usage
+
+```sh
 vault-web-gen -v ~/vault init     # writes a sample ~/vault/vault-web.toml
 vault-web-gen -v ~/vault list     # each slice's link (from base_url) and what it exports / skips
 vault-web-gen -v ~/vault build    # renders into site.output (replaced on every build)
